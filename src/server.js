@@ -1,12 +1,16 @@
 require('dotenv').config();
 const app = require('./app');
-const { connectMQTT } = require('./mqtt/client');
+const connectDB = require('./config/db');
+// const { connectMQTT } = require('./mqtt/client');
 
 const PORT = process.env.PORT || 3000;
 
 async function start() {
   try {
-    await connectMQTT();
+    await connectDB();
+
+    // await connectMQTT();
+
     app.listen(PORT, () => {
       console.log(`SmartNest backend running on port ${PORT}`);
     });
