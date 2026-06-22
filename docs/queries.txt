@@ -1,0 +1,10 @@
+Based on this guide alone:
+
+❌ /live/relays is not retained.
+✅ relay/x/state is retained.
+✅ relay/x/locked is retained.
+⚠️ We do not see any dedicated state/request / state/response mechanism.
+⚠️ We should confirm whether retained compatibility topics are permanent or temporary.
+
+State Cache
+

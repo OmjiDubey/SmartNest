@@ -1,7 +1,9 @@
 // Owns the MQTT connection itself: connecting, reconnecting, and publishing.
 
 const mqtt = require('mqtt');
+const crypto = require('crypto');
 const config = require('../config/mqtt');
+const { Topics } = require('./topics');
 
 let client = null;
 
@@ -64,9 +66,10 @@ function getClient() {
 }
 
 /**
- * Publishes a message to any topic. Used for relay commands, reboot/shutdown, etc.
+ * Generic publish — used for legacy/compatibility topics where the payload
+ * is a plain string ("true"/"false"/"reboot") rather than a JSON command.
  * @param {string} topic - full MQTT topic, e.g. "smartnest/relay/0/set"
- * @param {string|object} payload - "true"/"false"/"reboot" string, or an object (will be JSON.stringify'd)
+ * @param {string|object} payload - plain string, or object (will be JSON.stringify'd)
  * @param {object} options - mqtt.js publish options (qos, retain), optional
  */
 function publishMessage(topic, payload, options = { qos: 0, retain: false }) {
@@ -86,8 +89,27 @@ function publishMessage(topic, payload, options = { qos: 0, retain: false }) {
   });
 }
 
+/**
+ * Sends a structured command per the SmartNest MQTT Guide: JSON payload to
+ * <base>/cmd/request, with a unique cmd_id auto-generated if not provided.
+ * The device's reply arrives later on <base>/cmd/ack (handled in handlers.js)
+ * and should be matched back to this same cmd_id by the caller.
+ *
+ * @param {object} command - e.g. { type: "relay_set", relay: 1, state: true }
+ * @returns {string} the cmd_id used for this command, so the caller can match the ack
+ */
+function publishCommand(command) {
+  const cmd_id = command.cmd_id || crypto.randomUUID();
+  const fullCommand = { ...command, cmd_id };
+
+  publishMessage(Topics.CMD_REQUEST, fullCommand, { qos: 1, retain: false });
+
+  return cmd_id;
+}
+
 module.exports = {
   connectMQTT,
   publishMessage,
+  publishCommand,
   getClient,
 };
