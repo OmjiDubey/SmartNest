@@ -1,4 +1,4 @@
-const { verifyAccessToken } = require('..utils/tokenUtils');
+const { verifyAccessToken } = require('../utils/tokenUtils.js');
 
 function requireAuth(req, res, next) {
   const header = req.headers.authorization;

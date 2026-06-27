@@ -1,12 +1,10 @@
 const path = require("path");
 
 require("dotenv").config({
-  path: path.resolve(__dirname, "../.env")
+  path: path.resolve(__dirname, "../.env"),
 });
 
 const mqtt = require("mqtt");
-
-// console.log(process.env); // TESTING PURPOSES ONLY - REMOVE THIS IN PRODUCTION
 
 const client = mqtt.connect(
   `mqtts://${process.env.MQTT_BROKER_URL}:${process.env.MQTT_PORT}`,
@@ -18,85 +16,167 @@ const client = mqtt.connect(
   }
 );
 
-const BASE = process.env.MQTT_BASE_TOPIC || "smartnest";
+const BASE = process.env.MQTT_BASE_TOPIC;
 
-let relays = [false, false, false, false, false, false, false];
-let locks = [false, false, false, false, false, false, false];
+let relayStates = [false, false, false, false, false, false, false];
+let relayLocks = [false, false, false, false, false, false, false];
+let relayRuntime = [0, 0, 0, 0, 0, 0, 0];
 
 client.on("connect", () => {
-  console.log("Fake ESP32 Connected");
+  console.log("[Simulator] Fake ESP32 Connected");
 
   client.subscribe(`${BASE}/cmd/request`);
+  client.subscribe(`${BASE}/cmd/ack`);
 
-  sendStatus();
-  sendRelays();
-  sendSensors();
+  // Publish initial device state
+  publishStatus();
+  publishSensors();
+  publishRelays();
 
-  setInterval(sendStatus, 5000);
-  setInterval(sendSensors, 5000);
+  // Simulate live updates every 10 seconds
+  setInterval(publishStatus, 10000);
+  setInterval(publishSensors, 10000);
+  setInterval(publishRelays, 10000);
 });
 
-client.on("message", (topic, payload) => {
-  const cmd = JSON.parse(payload.toString());
+client.on("message", (topic, payloadBuffer) => {
+  const command = JSON.parse(payloadBuffer.toString());
 
-  console.log("CMD:", cmd);
+  console.log("\n[Simulator] Command Received");
+  console.log(command);
 
-  if (cmd.type === "relay_set") {
-    relays[cmd.relay] = cmd.state;
+  switch (command.type) {
 
-    sendRelays();
+    case "relay_set": {
 
-    client.publish(
-      `${BASE}/cmd/ack`,
-      JSON.stringify({
-        cmd_id: cmd.cmd_id,
-        success: true,
-        relay: cmd.relay,
-        state: cmd.state,
-        timestamp: Date.now(),
-      })
-    );
+      const index = command.relay - 1;
+
+      if (index < 0 || index > 6) {
+        publishAck(command, false, "invalid_relay");
+        return;
+      }
+
+      if (relayLocks[index]) {
+        publishAck(command, false, "locked");
+        return;
+      }
+
+      relayStates[index] = command.state;
+
+      publishRelays();
+
+      publishAck(command, true, "done");
+
+      break;
+    }
+
+    default:
+      publishAck(command, false, "unsupported");
   }
 });
 
-function sendStatus() {
+/**
+ * Publishes live status.
+ */
+function publishStatus() {
+
   client.publish(
     `${BASE}/live/status`,
     JSON.stringify({
-      wifi: true,
-      mqtt: true,
-      sd_card: true,
-      slave_d1: true,
-      slave_pzem: true,
       uptime: Math.floor(process.uptime()),
-      timestamp: Date.now(),
+
+      ssid: "SmartNest_Test_WiFi",
+      rssi: -48,
+
+      mqtt_status: 2,
+
+      sd_ok: true,
+      sd_total: 32000000000,
+      sd_used: 15000000,
+
+      digital_online: true,
+      pzem_online: true,
+      pzem_health: true,
+      dht_ok: true,
     })
   );
 }
 
-function sendRelays() {
-  client.publish(
-    `${BASE}/live/relays`,
-    JSON.stringify({
-      relays,
-      locked: locks,
-      master_lock: false,
-      timestamp: Date.now(),
-    })
-  );
-}
+/**
+ * Publishes live sensor readings.
+ */
+function publishSensors() {
 
-function sendSensors() {
   client.publish(
     `${BASE}/live/sensors`,
     JSON.stringify({
-      voltage: 230 + Math.random() * 3,
-      current: Math.random() * 2,
-      power: Math.random() * 500,
-      energy: Math.random() * 20,
-      temperature: 28 + Math.random() * 5,
-      humidity: 55 + Math.random() * 10,
-      timestamp: Date.now(),
+      voltage: 230.4,
+
+      main_current: 1.12,
+      digital_current: 0.34,
+      ac_current: 1.46,
+
+      ac_power: 336,
+
+      ac_energy_kwh: 8.51,
+      main_energy_kwh: 1.82,
+      digital_energy_kwh: 0.42,
+
+      temperature_c: 29.4,
+      humidity_pct: 61.2,
     })
+  );
+}
+
+/**
+ * Publishes current relay state.
+ */
+function publishRelays() {
+
+  client.publish(
+    `${BASE}/live/relays`,
+    JSON.stringify({
+      states: relayStates,
+      locks: relayLocks,
+      runtime: relayRuntime,
+
+      master_lock: false,
+      digital_switch: false,
+    })
+  );
+}
+
+/**
+ * Publishes a command acknowledgement back to the backend.
+ */
+function publishAck(command, ok, reason) {
+
+  const ack = {
+    cmd_id: command.cmd_id,
+    type: command.type,
+    ok,
+    reason,
+    relay: command.relay,
+    state: command.state,
+    locked: relayLocks[command.relay - 1] ?? false,
+  };
+
+  console.log("Publishing ACK to:", `${BASE}/cmd/ack`);
+
+  client.publish(
+    `${BASE}/cmd/ack`,
+    JSON.stringify(ack),
+    { qos: 1 },
+    (err) => {
+
+      if (err) {
+        console.error("[Simulator] Failed to publish ACK:", err.message);
+        return;
+      }
+
+      console.log(
+        `[Simulator] ACK Published -> ${ack.cmd_id}`
+      );
+    }
   );
 }

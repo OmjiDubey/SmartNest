@@ -4,6 +4,7 @@ const mqtt = require('mqtt');
 const crypto = require('crypto');
 const config = require('../config/mqtt');
 const { Topics } = require('./topics');
+const commandStateManager = require('../services/commandStateManager');
 
 let client = null;
 
@@ -90,19 +91,53 @@ function publishMessage(topic, payload, options = { qos: 0, retain: false }) {
 }
 
 /**
- * Sends a structured command per the SmartNest MQTT Guide: JSON payload to
- * <base>/cmd/request, with a unique cmd_id auto-generated if not provided.
- * The device's reply arrives later on <base>/cmd/ack (handled in handlers.js)
- * and should be matched back to this same cmd_id by the caller.
+ * Publishes a SmartNest command and registers it for ACK tracking.
  *
- * @param {object} command - e.g. { type: "relay_set", relay: 1, state: true }
- * @returns {string} the cmd_id used for this command, so the caller can match the ack
+ * The command is added to CommandStateManager BEFORE publishing
+ * so that a fast ACK is never missed.
+ *
+ * @param {object} command - Command payload
+ * @returns {string} Generated (or supplied) cmd_id
  */
 function publishCommand(command) {
-  const cmd_id = command.cmd_id || crypto.randomUUID();
-  const fullCommand = { ...command, cmd_id };
 
-  publishMessage(Topics.CMD_REQUEST, fullCommand, { qos: 1, retain: false });
+  // Stop immediately if MQTT is unavailable
+  if (!client || !client.connected) {
+    throw new Error("MQTT client is not connected.");
+  }
+
+  // Generate a unique command ID if one was not supplied
+  const cmd_id = command.cmd_id || crypto.randomUUID();
+
+  const fullCommand = {
+    ...command,
+    cmd_id,
+  };
+
+  // Create a timeout for this command.
+  // If no ACK arrives within 17 seconds, the command is marked as timed out.
+  const timeoutId = setTimeout(() => {
+    commandStateManager.timeout(cmd_id);
+  }, 17000);
+
+  // Register the command for future ACK matching
+  commandStateManager.create({
+    cmdId: cmd_id,
+    type: fullCommand.type,
+    payload: fullCommand,
+    createdAt: new Date(),
+    timeoutId,
+  });
+
+  // Publish to the SmartNest command topic
+  publishMessage(
+    Topics.CMD_REQUEST,
+    fullCommand,
+    {
+      qos: 1,
+      retain: false,
+    }
+  );
 
   return cmd_id;
 }

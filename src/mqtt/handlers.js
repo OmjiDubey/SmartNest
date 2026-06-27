@@ -3,6 +3,9 @@
 // just logging, per current project phase. JSON topics are parsed for
 // readable logs; legacy compatibility topics stay as raw strings.
 
+const commandStateManager = require('../services/commandStateManager');
+const DeviceStateManager = require('../services/deviceStateManager');
+
 const { getClient } = require('./client');
 const { Topics, SUBSCRIBE_TOPICS } = require('./topics');
 
@@ -51,17 +54,50 @@ function handleMessage(topic, payloadBuffer) {
 
   console.log(`[MQTT] Topic: ${topic}`);
 
-  if (JSON_TOPICS.has(topic)) {
-    try {
-      const parsed = JSON.parse(raw);
-      console.log('[MQTT] Payload (JSON):', parsed);
-    } catch (err) {
-      console.error(`[MQTT] Expected JSON on ${topic} but failed to parse:`, err.message);
-      console.log(`[MQTT] Raw payload: ${raw}`);
-    }
-  } else {
-    // Legacy/compatibility topics: plain string payloads (true/false/reboot/etc.)
+  if (!JSON_TOPICS.has(topic)) {
     console.log(`[MQTT] Payload: ${raw}`);
+    return;
+  }
+
+  let payload;
+
+  try {
+    payload = JSON.parse(raw);
+  } catch (err) {
+    console.error(
+      `[MQTT] Expected JSON on ${topic} but failed to parse:`,
+      err.message
+    );
+
+    console.log(`[MQTT] Raw payload: ${raw}`);
+    return;
+  }
+
+  console.log('[MQTT] Payload (JSON):', payload);
+
+  switch (topic) {
+    case Topics.LIVE_STATUS:
+      DeviceStateManager.updateStatus(payload);
+      break;
+
+    case Topics.LIVE_SENSORS:
+      DeviceStateManager.updateSensors(payload);
+      break;
+
+    case Topics.LIVE_RELAYS:
+      DeviceStateManager.updateRelays(payload);
+      break;
+
+    case Topics.CMD_ACK:
+      commandStateManager.handleAck(payload);
+      break;
+
+    case Topics.HISTORY_BATCH:
+      console.log('[MQTT] History batch received');
+      break;
+
+    default:
+      console.log(`[MQTT] No handler registered for ${topic}`);
   }
 }
 

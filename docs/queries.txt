@@ -1,10 +1,29 @@
 Based on this guide alone:
 
 ❌ /live/relays is not retained.
-✅ relay/x/state is retained.
-✅ relay/x/locked is retained.
-⚠️ We do not see any dedicated state/request / state/response mechanism.
-⚠️ We should confirm whether retained compatibility topics are permanent or temporary.
 
 State Cache
+--------------------------------------------------------
+Known limitation:
+Current state is memory-backed.
+Backend restart causes temporary state loss until MQTT updates arrive.
+Recovery strategy will be added in a later phase.
+---------------------------------------------------------
 
+
+One Thing to Clarify with Hardware Team
+
+Ask:
+
+Are live/status and live/relays published with MQTT retain=true?
+
+If not, ask whether they can add it.
+
+This is usually a small firmware change and can eliminate most backend restart problems.
+
+For SmartNest, retained messages on:
+
+live/status
+live/relays
+
+would provide the highest value with the least complexity.
