@@ -30,6 +30,10 @@ class DeviceStateManager extends EventEmitter {
         pzemHealth: false,
         dhtOk: false,
 
+        voltageEstimated: false,
+        timeSource: null,
+        resetReason: null,
+
         lastUpdated: null,
       },
 
@@ -50,14 +54,14 @@ class DeviceStateManager extends EventEmitter {
           acKwh: 0,
           mainKwh: 0,
           digitalKwh: 0,
+          pzemCumulativeKwh: 0,
+          acDayStartKwh: 0,
         },
 
         environment: {
           temperatureC: 0,
           humidityPct: 0,
         },
-
-        dhtOk: false,
 
         lastUpdated: null,
       },
@@ -71,16 +75,34 @@ class DeviceStateManager extends EventEmitter {
         lastUpdated: null,
       },
 
+      slaves: {
+        digitalBoard: {
+          online: false,
+          rssi: null,
+          lastSeenSecAgo: null,
+        },
+
+        pzem: {
+          online: false,
+          rssi: null,
+          lastSeenSecAgo: null,
+        },
+
+        lastUpdated: null,
+      },
+
       meta: {
         initialized: false,
 
         hasStatus: false,
         hasSensors: false,
         hasRelays: false,
+        hasSlaves: false,
 
         lastStatusUpdate: null,
         lastSensorsUpdate: null,
         lastRelaysUpdate: null,
+        lastSlavesUpdate: null,
 
         lastAnyUpdate: null,
       },
@@ -125,6 +147,18 @@ class DeviceStateManager extends EventEmitter {
         payload.dht_ok ??
         this.state.status.dhtOk,
 
+      voltageEstimated:
+        payload.voltage_estimated ??
+        this.state.status.voltageEstimated,
+
+      timeSource:
+        payload.time_source ??
+        this.state.status.timeSource,
+
+      resetReason:
+        payload.reset_reason ??
+        this.state.status.resetReason,
+
       lastUpdated: now,
     };
 
@@ -136,9 +170,9 @@ class DeviceStateManager extends EventEmitter {
 
     this.emit("statusUpdated", this.state.status);
 
-    console.log(                                    // TESTING PURPOSES ONLY
-    "[DeviceStateManager] Current State:",
-    JSON.stringify(this.state.status, null, 2));
+    // console.log(                                    // TESTING PURPOSES ONLY
+    // "[DeviceStateManager] Current State:",
+    // JSON.stringify(this.state.status, null, 2));
 
   }
 
@@ -184,6 +218,14 @@ class DeviceStateManager extends EventEmitter {
         digitalKwh:
           payload.digital_energy_kwh ??
           this.state.sensors.energy.digitalKwh,
+
+        pzemCumulativeKwh:
+          payload.pzem_cumulative_energy_kwh ??
+          this.state.sensors.energy.pzemCumulativeKwh,
+
+        acDayStartKwh:
+          payload.ac_day_start_kwh ??
+          this.state.sensors.energy.acDayStartKwh,
       },
 
       environment: {
@@ -195,10 +237,6 @@ class DeviceStateManager extends EventEmitter {
           payload.humidity_pct ??
           this.state.sensors.environment.humidityPct,
       },
-
-      dhtOk:
-        payload.dht_ok ??
-        this.state.sensors.dhtOk,
 
       lastUpdated: now,
     };
@@ -218,7 +256,7 @@ class DeviceStateManager extends EventEmitter {
     if (
       !Array.isArray(payload.states) ||
       !Array.isArray(payload.locks) ||
-      !Array.isArray(payload.runtime)
+      !Array.isArray(payload.runtime_sec)
     ) {
       return;
     }
@@ -226,7 +264,7 @@ class DeviceStateManager extends EventEmitter {
     if (
       payload.states.length !== 7 ||
       payload.locks.length !== 7 ||
-      payload.runtime.length !== 7
+      payload.runtime_sec.length !== 7
     ) {
       return;
     }
@@ -235,7 +273,7 @@ class DeviceStateManager extends EventEmitter {
       relay: index + 1,
       state,
       locked: payload.locks[index],
-      runtime: payload.runtime[index],
+      runtime_sec: payload.runtime_sec[index],
     }));
 
     this.state.relays = {
@@ -261,11 +299,39 @@ class DeviceStateManager extends EventEmitter {
     this.emit("relaysUpdated", this.state.relays);
   }
 
+  updateSlaves(payload) {
+    const now = new Date();
+
+    this.state.slaves = {
+
+      digitalBoard: {
+        online: payload.digital_board.online,
+        rssi: payload.digital_board.rssi,
+        lastSeenSecAgo: payload.digital_board.last_seen_sec_ago,
+      },
+
+      pzem: {
+        online: payload.pzem.online,
+        rssi: payload.pzem.rssi,
+        lastSeenSecAgo: payload.pzem.last_seen_sec_ago,
+      },
+
+      lastUpdated: now,
+    };
+
+    this.state.meta.hasSlaves = true;
+    this.state.meta.lastSlavesUpdate = now;
+    this.state.meta.lastAnyUpdate = now;
+
+    this.emit("slavesUpdated", this.state.slaves);
+  }
+
   updateInitialization() {
     this.state.meta.initialized =
       this.state.meta.hasStatus &&
       this.state.meta.hasSensors &&
-      this.state.meta.hasRelays;
+      this.state.meta.hasRelays &&
+      this.state.meta.hasSlaves;
   }
 
   getState() {
@@ -292,6 +358,10 @@ class DeviceStateManager extends EventEmitter {
     return this.state.relays.items.find(
       (relay) => relay.relay === relayNumber
     );
+  }
+
+  getSlaves() {
+    return this.state.slaves;
   }
 
   isInitialized() {

@@ -1,39 +1,47 @@
-const bcrypt = require('bcrypt');
-const connectDB = require('../src/config/db'); // adjust if your db.js exports differently
-const User = require('../src/models/User');
+const bcrypt = require("bcrypt");
+const connectDB = require("../config/db.js");
+const User = require("../models/user.js");
 
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) || 10;
 
-// Edit this list with the family members you want to add
-const usersToCreate = [
-  { username: 'omjidubey', name: 'Omji Dubey', password: 'dubey.om.123' },
+require("dotenv").config();
 
+// Users to create
+const usersToCreate = [
+  {
+    username: "omjidubey",
+    name: "Omji Dubey",
+    password: "dubey.123",
+  },
 ];
 
 async function seed() {
   await connectDB();
 
-  for (const u of usersToCreate) {
-    const existing = await User.findOne({ username: u.username });
+  for (const user of usersToCreate) {
+    const existing = await User.findOne({ username: user.username });
+
     if (existing) {
-      console.log(`Skipped (already exists): ${u.username}`);
+      console.log(`Skipped (already exists): ${user.username}`);
       continue;
     }
 
-    const passwordHash = await bcrypt.hash(u.password, SALT_ROUNDS);
+    const passwordHash = await bcrypt.hash(user.password, SALT_ROUNDS);
+
     await User.create({
-      username: u.username,
-      name: u.name,
+      username: user.username,
+      name: user.name,
       passwordHash,
     });
-    console.log(`Created: ${u.username}`);
+
+    console.log(`Created: ${user.username}`);
   }
 
-  console.log('Done.');
+  console.log("Done.");
   process.exit(0);
 }
 
 seed().catch((err) => {
-  console.error('Seed failed:', err);
+  console.error("Seed failed:", err);
   process.exit(1);
 });

@@ -15,6 +15,7 @@ const JSON_TOPICS = new Set([
   Topics.LIVE_STATUS,
   Topics.LIVE_SENSORS,
   Topics.LIVE_RELAYS,
+  Topics.LIVE_SLAVES,
   Topics.CMD_ACK,
   Topics.HISTORY_BATCH,
 ]);
@@ -86,6 +87,10 @@ function handleMessage(topic, payloadBuffer) {
 
     case Topics.LIVE_RELAYS:
       DeviceStateManager.updateRelays(payload);
+      break;
+
+    case Topics.LIVE_SLAVES:
+      DeviceStateManager.updateSlaves(payload);
       break;
 
     case Topics.CMD_ACK:

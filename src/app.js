@@ -1,5 +1,5 @@
 const express = require('express');
-const authRoutes = require('./routes/auth.Routes');
+const authRoutes = require('./routes/auth.routes');
 const deviceRoutes = require("./routes/device.routes");
 
 const app = express();

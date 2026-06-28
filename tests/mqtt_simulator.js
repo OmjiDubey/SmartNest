@@ -18,165 +18,210 @@ const client = mqtt.connect(
 
 const BASE = process.env.MQTT_BASE_TOPIC;
 
+// ----------------------
+// Device State
+// ----------------------
+
 let relayStates = [false, false, false, false, false, false, false];
 let relayLocks = [false, false, false, false, false, false, false];
 let relayRuntime = [0, 0, 0, 0, 0, 0, 0];
 
+let masterLock = false;
+let digitalSwitch = true;
+
+// ----------------------
+// MQTT
+// ----------------------
+
 client.on("connect", () => {
-  console.log("[Simulator] Fake ESP32 Connected");
+  console.log("[Simulator] Connected");
 
   client.subscribe(`${BASE}/cmd/request`);
-  client.subscribe(`${BASE}/cmd/ack`);
 
-  // Publish initial device state
-  publishStatus();
-  publishSensors();
   publishRelays();
 
-  // Simulate live updates every 10 seconds
-  setInterval(publishStatus, 10000);
-  setInterval(publishSensors, 10000);
-  setInterval(publishRelays, 10000);
+  setInterval(() => {
+
+    relayStates.forEach((state, index) => {
+      if (state) relayRuntime[index]++;
+    });
+
+    publishRelays();
+
+  }, 5000);
 });
 
-client.on("message", (topic, payloadBuffer) => {
-  const command = JSON.parse(payloadBuffer.toString());
+client.on("message", (topic, buffer) => {
 
-  console.log("\n[Simulator] Command Received");
+  const command = JSON.parse(buffer.toString());
+
+  console.log("\n======================");
+  console.log("Command Received");
   console.log(command);
+  console.log("======================");
 
   switch (command.type) {
 
-    case "relay_set": {
+    case "relay_set":
+      return handleRelaySet(command);
 
-      const index = command.relay - 1;
+    case "relay_toggle":
+      return handleRelayToggle(command);
 
-      if (index < 0 || index > 6) {
-        publishAck(command, false, "invalid_relay");
-        return;
-      }
+    case "relay_lock":
+      return handleRelayLock(command);
 
-      if (relayLocks[index]) {
-        publishAck(command, false, "locked");
-        return;
-      }
+    case "master_lock":
+      return handleMasterLock(command);
 
-      relayStates[index] = command.state;
+    case "slave_reboot":
+      return publishAck(command, true, "done");
 
-      publishRelays();
-
-      publishAck(command, true, "done");
-
-      break;
-    }
+    case "pzem_energy_reset":
+      return publishAck(command, true, "done");
 
     default:
-      publishAck(command, false, "unsupported");
+      return publishAck(command, false, "unsupported");
   }
+
 });
 
-/**
- * Publishes live status.
- */
-function publishStatus() {
+// ----------------------
+// Handlers
+// ----------------------
 
-  client.publish(
-    `${BASE}/live/status`,
-    JSON.stringify({
-      uptime: Math.floor(process.uptime()),
+function handleRelaySet(cmd) {
 
-      ssid: "SmartNest_Test_WiFi",
-      rssi: -48,
+  const index = cmd.relay - 1;
 
-      mqtt_status: 2,
+  if (index < 0 || index > 6)
+    return publishAck(cmd, false, "invalid_relay");
 
-      sd_ok: true,
-      sd_total: 32000000000,
-      sd_used: 15000000,
+  if (masterLock)
+    return publishAck(cmd, false, "master_locked");
 
-      digital_online: true,
-      pzem_online: true,
-      pzem_health: true,
-      dht_ok: true,
-    })
-  );
+  if (relayLocks[index])
+    return publishAck(cmd, false, "locked");
+
+  relayStates[index] = cmd.state;
+
+  publishRelays();
+
+  publishAck(cmd, true, "done");
 }
 
-/**
- * Publishes live sensor readings.
- */
-function publishSensors() {
+function handleRelayToggle(cmd) {
 
-  client.publish(
-    `${BASE}/live/sensors`,
-    JSON.stringify({
-      voltage: 230.4,
+  const index = cmd.relay - 1;
 
-      main_current: 1.12,
-      digital_current: 0.34,
-      ac_current: 1.46,
+  if (index < 0 || index > 6)
+    return publishAck(cmd, false, "invalid_relay");
 
-      ac_power: 336,
+  if (masterLock)
+    return publishAck(cmd, false, "master_locked");
 
-      ac_energy_kwh: 8.51,
-      main_energy_kwh: 1.82,
-      digital_energy_kwh: 0.42,
+  if (relayLocks[index])
+    return publishAck(cmd, false, "locked");
 
-      temperature_c: 29.4,
-      humidity_pct: 61.2,
-    })
-  );
+  relayStates[index] = !relayStates[index];
+
+  publishRelays();
+
+  publishAck(cmd, true, "done");
 }
 
-/**
- * Publishes current relay state.
- */
+function handleRelayLock(cmd) {
+
+  const index = cmd.relay - 1;
+
+  if (index < 0 || index > 6)
+    return publishAck(cmd, false, "invalid_relay");
+
+  relayLocks[index] = cmd.locked;
+
+  publishRelays();
+
+  publishAck(cmd, true, "done");
+}
+
+function handleMasterLock(cmd) {
+
+  masterLock = cmd.state;
+
+  publishRelays();
+
+  publishAck(cmd, true, "done");
+}
+
+// ----------------------
+// Publishers
+// ----------------------
+
 function publishRelays() {
+
+  const payload = {
+
+    states: relayStates,
+
+    locks: relayLocks,
+
+    runtime_sec: relayRuntime,
+
+    master_lock: masterLock,
+
+    digital_switch: digitalSwitch,
+  };
 
   client.publish(
     `${BASE}/live/relays`,
-    JSON.stringify({
-      states: relayStates,
-      locks: relayLocks,
-      runtime: relayRuntime,
+    JSON.stringify(payload),
+    { qos: 0 }
+  );
 
-      master_lock: false,
-      digital_switch: false,
-    })
+  console.log("\n[Simulator] Relay State");
+  console.table(
+    relayStates.map((state, i) => ({
+      Relay: i + 1,
+      State: state,
+      Locked: relayLocks[i],
+      Runtime: relayRuntime[i],
+    }))
   );
 }
 
-/**
- * Publishes a command acknowledgement back to the backend.
- */
 function publishAck(command, ok, reason) {
 
   const ack = {
-    cmd_id: command.cmd_id,
-    type: command.type,
-    ok,
-    reason,
-    relay: command.relay,
-    state: command.state,
-    locked: relayLocks[command.relay - 1] ?? false,
-  };
 
-  console.log("Publishing ACK to:", `${BASE}/cmd/ack`);
+    cmd_id: command.cmd_id,
+
+    type: command.type,
+
+    ok,
+
+    reason,
+
+    relay: command.relay,
+
+    state: command.state,
+
+    locked: command.locked,
+  };
 
   client.publish(
     `${BASE}/cmd/ack`,
     JSON.stringify(ack),
-    { qos: 1 },
-    (err) => {
-
-      if (err) {
-        console.error("[Simulator] Failed to publish ACK:", err.message);
-        return;
-      }
-
-      console.log(
-        `[Simulator] ACK Published -> ${ack.cmd_id}`
-      );
-    }
+    { qos: 1 }
   );
+
+  console.log("[Simulator] ACK Published");
+  console.log(ack);
 }
+
+client.on("error", (err) => {
+  console.error(err);
+});
+
+client.on("close", () => {
+  console.log("[Simulator] Disconnected");
+});

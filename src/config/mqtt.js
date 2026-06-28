@@ -9,4 +9,5 @@ module.exports = {
   password: process.env.MQTT_PASSWORD,
   clientId: process.env.MQTT_CLIENT_ID || 'smartnest_backend',
   baseTopic: process.env.MQTT_BASE_TOPIC || 'smartnest',
+  deviceId: process.env.SMARTNEST_DEVICE_ID || "SmartNest_001",
 };
