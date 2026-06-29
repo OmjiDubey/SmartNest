@@ -60,7 +60,7 @@ client.on("message", (topic, buffer) => {
   console.log(command);
   console.log("======================");
 
-  switch (command.type) {
+  switch (command.command) {
 
     case "relay_set":
       return handleRelaySet(command);
@@ -195,7 +195,7 @@ function publishAck(command, ok, reason) {
 
     cmd_id: command.cmd_id,
 
-    type: command.type,
+    command: command.command,
 
     ok,
 

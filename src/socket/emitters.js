@@ -30,6 +30,13 @@ function emitStatusUpdate(deviceId, payload) {
   });
 }
 
+function emitSlavesUpdate(deviceId, payload) {
+    getIO().to(roomForDevice(deviceId)).emit(events.SLAVES_UPDATE,{
+      device: deviceId,
+      ...payload,
+  });
+}
+
 function emitCommandAck(deviceId, ackPayload) {
   getIO().to(roomForDevice(deviceId)).emit(events.COMMAND_ACK, {
     device: deviceId,
@@ -41,5 +48,6 @@ module.exports = {
   emitRelayUpdate,
   emitSensorUpdate,
   emitStatusUpdate,
+  emitSlavesUpdate,
   emitCommandAck,
 };

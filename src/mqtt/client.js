@@ -123,7 +123,7 @@ function publishCommand(command) {
   // Register the command for future ACK matching
   commandStateManager.create({
     cmdId: cmd_id,
-    type: fullCommand.type,
+    command: fullCommand.command,
     payload: fullCommand,
     createdAt: new Date(),
     timeoutId,

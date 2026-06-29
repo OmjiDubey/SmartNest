@@ -9,6 +9,7 @@ module.exports = {
   SENSOR_UPDATE: 'device:sensors',   // mirrors <base>/live/sensors
   STATUS_UPDATE: 'device:status',    // mirrors <base>/live/status
   COMMAND_ACK: 'command:ack',        // mirrors <base>/cmd/ack
+  SLAVES_UPDATE: 'device:slaves',    // mirrors <base>/live/slaves
 
   // Client -> Server (inbound, handled in socket/index.js)
   CLIENT_SUBSCRIBE: 'subscribe',

@@ -5,7 +5,9 @@
 
 const commandStateManager = require('../services/commandStateManager');
 const DeviceStateManager = require('../services/deviceStateManager');
+const { emitStatusUpdate, emitSensorUpdate, emitRelayUpdate, emitSlavesUpdate, emitCommandAck } = require("../socket/emitters");
 
+const config = require("../config/mqtt");
 const { getClient } = require('./client');
 const { Topics, SUBSCRIBE_TOPICS } = require('./topics');
 
@@ -79,22 +81,27 @@ function handleMessage(topic, payloadBuffer) {
   switch (topic) {
     case Topics.LIVE_STATUS:
       DeviceStateManager.updateStatus(payload);
+      emitStatusUpdate(config.deviceId, DeviceStateManager.getStatus());
       break;
 
     case Topics.LIVE_SENSORS:
       DeviceStateManager.updateSensors(payload);
+      emitSensorUpdate(config.deviceId, DeviceStateManager.getSensors());
       break;
 
     case Topics.LIVE_RELAYS:
       DeviceStateManager.updateRelays(payload);
+      emitRelayUpdate(config.deviceId, DeviceStateManager.getRelays());
       break;
 
     case Topics.LIVE_SLAVES:
       DeviceStateManager.updateSlaves(payload);
+      emitSlavesUpdate(config.deviceId, DeviceStateManager.getSlaves());
       break;
 
     case Topics.CMD_ACK:
       commandStateManager.handleAck(payload);
+      emitCommandAck(config.deviceId, payload);
       break;
 
     case Topics.HISTORY_BATCH:

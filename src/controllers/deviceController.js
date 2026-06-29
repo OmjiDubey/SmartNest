@@ -23,7 +23,7 @@ exports.setRelayState = async (req, res) => {
     }
 
     const cmd_id = publishCommand({
-      type: "relay_set",
+      command: "relay_set",
       relay,
       state,
     });
@@ -86,7 +86,7 @@ exports.toggleRelay = async (req, res) => {
     }
 
     const cmd_id = publishCommand({
-      type: "relay_toggle",
+      command: "relay_toggle",
       relay,
     });
 
@@ -135,7 +135,7 @@ exports.setRelayLock = async (req, res) => {
 
     // Publish MQTT command
     const cmd_id = publishCommand({
-      type: "relay_lock",
+      command: "relay_lock",
       relay,
       locked,
     });
@@ -173,7 +173,7 @@ exports.setMasterLock = async (req, res) => {
     }
 
     const cmd_id = publishCommand({
-      type: "master_lock",
+      command: "master_lock",
       state,
     });
 
@@ -212,7 +212,7 @@ exports.rebootSlave = async (req, res) => {
     }
 
     const cmd_id = publishCommand({
-      type: "slave_reboot",
+      command: "slave_reboot",
       target,
     });
 
@@ -239,7 +239,7 @@ exports.rebootSlave = async (req, res) => {
 exports.resetPzemEnergy = async (req, res) => {
   try {
     const cmd_id = publishCommand({
-      type: "pzem_energy_reset",
+      command: "pzem_energy_reset",
     });
 
     return res.status(202).json({
