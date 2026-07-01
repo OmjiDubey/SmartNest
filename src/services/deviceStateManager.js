@@ -110,7 +110,7 @@ class DeviceStateManager extends EventEmitter {
   }
 
   updateStatus(payload) {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     this.state.status = {
       ...this.state.status,
@@ -177,7 +177,7 @@ class DeviceStateManager extends EventEmitter {
   }
 
   updateSensors(payload) {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     this.state.sensors = {
       ...this.state.sensors,
@@ -251,7 +251,7 @@ class DeviceStateManager extends EventEmitter {
   }
 
   updateRelays(payload) {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     if (
       !Array.isArray(payload.states) ||
@@ -273,7 +273,7 @@ class DeviceStateManager extends EventEmitter {
       relay: index + 1,
       state,
       locked: payload.locks[index],
-      runtime_sec: payload.runtime_sec[index],
+      runtimeSec: payload.runtime_sec[index],
     }));
 
     this.state.relays = {
@@ -300,7 +300,7 @@ class DeviceStateManager extends EventEmitter {
   }
 
   updateSlaves(payload) {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     this.state.slaves = {
 
@@ -373,7 +373,7 @@ class DeviceStateManager extends EventEmitter {
 
     if (!last) return false;
 
-    return Date.now() - last.getTime() < timeoutMs;
+    return Date.now() - new Date(last).getTime() < timeoutMs;
   }
 
   getLastUpdated() {

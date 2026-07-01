@@ -34,7 +34,7 @@ class CommandStateManager extends EventEmitter {
     const result = {
       ...command,
       ack,
-      completedAt: new Date(),
+      completedAt: new Date().toISOString(),
     };
 
     this.emit("commandCompleted", result);
@@ -54,7 +54,7 @@ class CommandStateManager extends EventEmitter {
     const result = {
       ...command,
       ack,
-      failedAt: new Date(),
+      failedAt: new Date().toISOString(),
     };
 
     this.emit("commandFailed", result);
@@ -73,7 +73,7 @@ class CommandStateManager extends EventEmitter {
 
     const result = {
       ...command,
-      timedOutAt: new Date(),
+      timedOutAt: new Date().toISOString(),
     };
 
     this.emit("commandTimedOut", result);

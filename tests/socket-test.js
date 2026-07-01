@@ -1,7 +1,7 @@
 const { io } = require("socket.io-client");
 
 // Paste your JWT here
-const ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTQxNTBlMjM5YTYyYjBmNDcyNTFiMTgiLCJ1c2VybmFtZSI6Im9tamlkdWJleSIsImlhdCI6MTc4MjczOTQwNiwiZXhwIjoxNzgyNzQwMzA2fQ.HZZUoQYo54bGU7zkVFk-f5nI1fnSSpopRA6mpauKvdI";
+const ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTQxNTBlMjM5YTYyYjBmNDcyNTFiMTgiLCJ1c2VybmFtZSI6Im9tamlkdWJleSIsImlhdCI6MTc4Mjg4NzI3MSwiZXhwIjoxNzgyODg4MTcxfQ.6VvsQruq3POBdA3j0g7eD-6Pz6NIVcuMQhRwxA6AiMA";
 
 // Same device ID used by the backend
 const DEVICE_ID = process.env.SMARTNEST_DEVICE_ID || "SmartNest_001";

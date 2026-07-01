@@ -55,4 +55,40 @@ router.post(
   deviceController.resetPzemEnergy
 );
 
+//=============== NEW APIs ====================
+router.post(
+  "/:deviceId/lights",
+  authMiddleware,
+  deviceMiddleware.validateDeviceId,
+  deviceController.setLights
+);
+
+router.post(
+  "/:deviceId/relays/off",
+  authMiddleware,
+  deviceMiddleware.validateDeviceId,
+  deviceController.turnOffAllRelays
+);
+
+router.post(
+  "/:deviceId/relays/unlock",
+  authMiddleware,
+  deviceMiddleware.validateDeviceId,
+  deviceController.unlockAllRelays
+);
+
+router.post(
+  "/:deviceId/system/reboot",
+  authMiddleware,
+  deviceMiddleware.validateDeviceId,
+  deviceController.systemReboot
+);
+
+router.post(
+  "/:deviceId/ac",
+  authMiddleware,
+  deviceMiddleware.validateDeviceId,
+  deviceController.controlAC
+);
+
 module.exports = router;

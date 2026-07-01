@@ -52,9 +52,9 @@ exports.getRelays = (req, res) => {
     const data = {
       states: relays.items.map((r) => r.state),
       locks: relays.items.map((r) => r.locked),
-      master_lock: relays.masterLock,
-      digital_switch: relays.digitalSwitch,
-      runtime_sec: relays.items.map((r) => r.runtime_sec),
+      masterLock: relays.masterLock,
+      digitalSwitch: relays.digitalSwitch,
+      runtimeSec: relays.items.map((r) => r.runtimeSec),
     };
 
     return res.status(200).json({
@@ -93,7 +93,7 @@ exports.toggleRelay = async (req, res) => {
     return res.status(202).json({
       success: true,
       data: {
-        device_id: req.params.deviceId,
+        deviceId: req.params.deviceId,
         cmd_id,
         status: "pending",
       },
@@ -143,7 +143,7 @@ exports.setRelayLock = async (req, res) => {
     return res.status(202).json({
       success: true,
       data: {
-        device_id: req.params.deviceId,
+        deviceId: req.params.deviceId,
         cmd_id,
         status: "pending",
       },
@@ -180,7 +180,7 @@ exports.setMasterLock = async (req, res) => {
     return res.status(202).json({
       success: true,
       data: {
-        device_id: req.params.deviceId,
+        deviceId: req.params.deviceId,
         cmd_id,
         status: "pending",
       },
@@ -219,7 +219,7 @@ exports.rebootSlave = async (req, res) => {
     return res.status(202).json({
       success: true,
       data: {
-        device_id: req.params.deviceId,
+        deviceId: req.params.deviceId,
         cmd_id,
         status: "pending",
       },
@@ -245,7 +245,7 @@ exports.resetPzemEnergy = async (req, res) => {
     return res.status(202).json({
       success: true,
       data: {
-        device_id: req.params.deviceId,
+        deviceId: req.params.deviceId,
         cmd_id,
         status: "pending",
       },
@@ -253,6 +253,222 @@ exports.resetPzemEnergy = async (req, res) => {
 
   } catch (err) {
     console.error("[DeviceController] resetPzemEnergy:", err);
+
+    return res.status(500).json({
+      success: false,
+      error: "INTERNAL_SERVER_ERROR",
+      message: err.message,
+    });
+  }
+};
+
+exports.setLights = async (req, res) => {
+  try {
+    const { state } = req.body;
+
+    if (typeof state !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        error: "INVALID_STATE",
+        message: "'state' must be a boolean.",
+      });
+    }
+
+    const cmd_id = publishCommand({
+      command: "lights_set",
+      state,
+    });
+
+    return res.status(202).json({
+      success: true,
+      data: {
+        deviceId: req.params.deviceId,
+        cmd_id,
+        status: "pending",
+      },
+    });
+
+  } catch (err) {
+    console.error("[DeviceController] setLights:", err);
+
+    return res.status(500).json({
+      success: false,
+      error: "INTERNAL_SERVER_ERROR",
+      message: err.message,
+    });
+  }
+};
+
+exports.turnOffAllRelays = async (req, res) => {
+  try {
+    const cmd_id = publishCommand({
+      command: "all_relays_off",
+    });
+
+    return res.status(202).json({
+      success: true,
+      data: {
+        deviceId: req.params.deviceId,
+        cmd_id,
+        status: "pending",
+      },
+    });
+
+  } catch (err) {
+    console.error("[DeviceController] turnOffAllRelays:", err);
+
+    return res.status(500).json({
+      success: false,
+      error: "INTERNAL_SERVER_ERROR",
+      message: err.message,
+    });
+  }
+};
+
+exports.unlockAllRelays = async (req, res) => {
+  try {
+    const cmd_id = publishCommand({
+      command: "unlock_all_relays",
+    });
+
+    return res.status(202).json({
+      success: true,
+      data: {
+        deviceId: req.params.deviceId,
+        cmd_id,
+        status: "pending",
+      },
+    });
+
+  } catch (err) {
+    console.error("[DeviceController] unlockAllRelays:", err);
+
+    return res.status(500).json({
+      success: false,
+      error: "INTERNAL_SERVER_ERROR",
+      message: err.message,
+    });
+  }
+};
+
+exports.systemReboot = async (req, res) => {
+  try {
+    const cmd_id = publishCommand({
+      command: "system_reboot",
+    });
+
+    return res.status(202).json({
+      success: true,
+      data: {
+        deviceId: req.params.deviceId,
+        cmd_id,
+        status: "pending",
+      },
+    });
+
+  } catch (err) {
+    console.error("[DeviceController] systemReboot:", err);
+
+    return res.status(500).json({
+      success: false,
+      error: "INTERNAL_SERVER_ERROR",
+      message: err.message,
+    });
+  }
+};
+
+exports.controlAC = async (req, res) => {
+  try {
+    const { power, temp, tempStep, fan } = req.body;
+
+    const fields = [
+      power !== undefined,
+      temp !== undefined,
+      tempStep !== undefined,
+      fan !== undefined,
+    ];
+
+    if (fields.filter(Boolean).length !== 1) {
+      return res.status(400).json({
+        success: false,
+        error: "INVALID_AC_REQUEST",
+        message:
+          "Exactly one of power, temp, tempStep or fan must be provided.",
+      });
+    }
+
+    const payload = {
+      command: "ac_set",
+    };
+
+    if (power !== undefined) {
+      if (typeof power !== "boolean") {
+        return res.status(400).json({
+          success: false,
+          error: "INVALID_POWER",
+          message: "'power' must be boolean.",
+        });
+      }
+      payload.power = power;
+    }
+
+    if (temp !== undefined) {
+      if (!Number.isInteger(temp) || temp < 16 || temp > 30) {
+        return res.status(400).json({
+          success: false,
+          error: "INVALID_TEMP",
+          message: "'temp' must be an integer between 16 and 30.",
+        });
+      }
+      payload.temp = temp;
+    }
+
+    if (tempStep !== undefined) {
+      if (!["up", "down"].includes(tempStep)) {
+        return res.status(400).json({
+          success: false,
+          error: "INVALID_TEMP_STEP",
+          message: "'tempStep' must be 'up' or 'down'.",
+        });
+      }
+      payload.temp_step = tempStep;
+    }
+
+    if (fan !== undefined) {
+      const validFans = [
+        "auto",
+        "min",
+        "low",
+        "med",
+        "high",
+        "max",
+      ];
+
+      if (!validFans.includes(fan)) {
+        return res.status(400).json({
+          success: false,
+          error: "INVALID_FAN",
+          message:
+            "'fan' must be one of auto, min, low, med, high or max.",
+        });
+      }
+
+      payload.fan = fan;
+    }
+
+    const cmd_id = publishCommand(payload);
+
+    return res.status(202).json({
+      success: true,
+      data: {
+        deviceId: req.params.deviceId,
+        cmd_id,
+        status: "pending",
+      },
+    });
+
+  } catch (err) {
+    console.error("[DeviceController] controlAC:", err);
 
     return res.status(500).json({
       success: false,
