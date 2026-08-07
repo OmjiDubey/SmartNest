@@ -1,0 +1,6 @@
+[submodule "backend"]
+	path = backend
+	url = https://github.com/OmjiDubey/SmartNest-backend.git
+[submodule "hardware"]
+	path = hardware
+	url = https://github.com/MakeWithArpit/SmartNest.git
