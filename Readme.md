@@ -509,7 +509,7 @@ For a production deployment, SmartNest should consider:
 * Input validation.
 * Access control for connected appliances.
 
-Sensitive credentials such as database URLs, API keys, passwords, and secret tokens **should never be committed to GitHub**
+> Sensitive credentials such as database URLs, API keys, passwords, and secret tokens **should never be committed to GitHub**
 
 ---
 ## Limitations
