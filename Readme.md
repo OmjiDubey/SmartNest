@@ -25,7 +25,6 @@ Users can remotely control connected appliances through the mobile application w
 * [Project Workflow](#project-workflow)
 * [Advantages](#advantages)
 * [Future Scope](#future-scope)
-* [Team](#team)
 * [Project Outcomes](#project-outcomes)
 * [Installation and Setup](#installation-and-setup)
 * [Security Considerations](#security-considerations)
@@ -508,7 +507,16 @@ For a production deployment, SmartNest should consider:
 * Input validation.
 * Access control for connected appliances.
 
-Sensitive credentials such as database URLs, API keys, passwords, and secret tokens **should never be committed to GitHub**.
+Sensitive credentials such as database URLs, API keys, passwords, and secret tokens **should never be committed to GitHub**
+
+---
+## Limitations
+- No offline mode yet — requires an active internet connection for both the mobile app and ESP32.
+- No cloud deployment yet; runs on local network only.
+- Authentication/authorization is not yet fully implemented.
+---
+## Contributing
+This project is currently maintained by Team ANVAYA. If you'd like to report a bug or suggest a feature, please open an issue in the repository.
 
 ---
 
