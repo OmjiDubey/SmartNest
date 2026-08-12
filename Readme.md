@@ -28,6 +28,8 @@ Users can remotely control connected appliances through the mobile application w
 * [Project Outcomes](#project-outcomes)
 * [Installation and Setup](#installation-and-setup)
 * [Security Considerations](#security-considerations)
+* [Limitations](#Limitations)
+* [Contributing](#Contributing)
 * [License](#license)
 * [Conclusion](#conclusion)
 
